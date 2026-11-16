@@ -1,4 +1,36 @@
 const header = document.querySelector(".site-header");
+const themeToggle = document.querySelector("#theme-toggle");
+const themeStorageKey = "portfolio-theme";
+
+function getSavedTheme() {
+  try {
+    return window.localStorage.getItem(themeStorageKey) === "dark" ? "dark" : "light";
+  } catch (error) {
+    console.error("테마 설정을 localStorage에서 불러오지 못했습니다.", error);
+    return "light";
+  }
+}
+
+function setTheme(theme) {
+  const isDark = theme === "dark";
+  document.documentElement.dataset.theme = isDark ? "dark" : "light";
+  themeToggle.setAttribute("aria-pressed", String(isDark));
+  themeToggle.setAttribute("aria-label", isDark ? "라이트 모드로 전환" : "다크 모드로 전환");
+  themeToggle.querySelector(".theme-icon").textContent = isDark ? "☀" : "☾";
+}
+
+setTheme(getSavedTheme());
+
+themeToggle.addEventListener("click", () => {
+  const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  setTheme(nextTheme);
+
+  try {
+    window.localStorage.setItem(themeStorageKey, nextTheme);
+  } catch (error) {
+    console.error("테마 설정을 localStorage에 저장하지 못했습니다.", error);
+  }
+});
 
 const updateHeader = () => {
   header.classList.toggle("is-scrolled", window.scrollY > 20);
@@ -75,4 +107,63 @@ projectDialog.addEventListener("click", (event) => {
 
 projectDialog.addEventListener("close", () => {
   previouslyFocusedElement?.focus();
+});
+
+const contactForm = document.querySelector("#contact-form");
+const contactFields = [
+  {
+    input: contactForm.querySelector("#contact-name"),
+    error: contactForm.querySelector("#name-error"),
+    requiredMessage: "이름을 입력해 주세요."
+  },
+  {
+    input: contactForm.querySelector("#contact-email"),
+    error: contactForm.querySelector("#email-error"),
+    requiredMessage: "이메일 주소를 입력해 주세요."
+  },
+  {
+    input: contactForm.querySelector("#contact-message"),
+    error: contactForm.querySelector("#message-error"),
+    requiredMessage: "메시지를 입력해 주세요."
+  }
+];
+const formStatus = contactForm.querySelector("#form-status");
+
+function getFieldError(field) {
+  if (!field.input.value.trim()) return field.requiredMessage;
+  if (field.input.type === "email" && field.input.validity.typeMismatch) {
+    return "올바른 이메일 주소를 입력해 주세요. (예: name@example.com)";
+  }
+  return "";
+}
+
+function updateFieldError(field) {
+  const message = getFieldError(field);
+  field.error.textContent = message;
+  field.input.setAttribute("aria-invalid", String(Boolean(message)));
+  return !message;
+}
+
+contactFields.forEach((field) => {
+  field.input.addEventListener("input", () => {
+    updateFieldError(field);
+    formStatus.textContent = "";
+    formStatus.classList.remove("is-success");
+  });
+});
+
+contactForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  formStatus.textContent = "";
+  formStatus.classList.remove("is-success");
+
+  const invalidFields = contactFields.filter((field) => !updateFieldError(field));
+  if (invalidFields.length > 0) {
+    formStatus.textContent = "입력 내용을 확인해 주세요. 표시된 항목을 수정하면 됩니다.";
+    invalidFields[0].input.focus();
+    return;
+  }
+
+  formStatus.textContent = "입력 내용이 확인되었습니다. 실습용 폼이므로 실제 문의는 전송되지 않았습니다.";
+  formStatus.classList.add("is-success");
 });
